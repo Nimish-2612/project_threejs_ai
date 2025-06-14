@@ -14,7 +14,7 @@ app.use("/api/v1/dalle", dalleroutes);
 
 
 app.get("/", (req, res) => {
-  res.status(200).json({ message: "Hello from DALL-E!" });
+  res.status(200).json({ message: "Hello from RUNWAY!" });
 });
 
 app.listen(8080, () =>
