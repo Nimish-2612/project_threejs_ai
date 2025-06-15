@@ -87,7 +87,10 @@ const Customizer = () => {
                     key={tab.name}
                     tab={tab}
                     handleClick={() => {
-                      setActiveEditorTab(tab.name);
+                      // Toggle tab on second click
+                      setActiveEditorTab((prev) =>
+                        prev === tab.name ? "" : tab.name
+                      );
                     }}
                   />
                 ))}
