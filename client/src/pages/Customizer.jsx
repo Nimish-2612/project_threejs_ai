@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSnapshot } from "valtio";
-import config from "../config/config";
 import state from "../store";
-import { download, stylishShirt } from "../assets";
 import { downloadCanvasToImage, reader } from "../config/helpers";
 import { EditorTabs, FilterTabs, DecalTypes } from "../config/constants";
 import { fadeAnimation, slideAnimation } from "../config/motion";
@@ -25,13 +23,7 @@ const Customizer = () => {
     stylishShirt: false,
   });
 
-  // Filter out AI Picker tab
-  const visibleEditorTabs = EditorTabs.filter((tab) => tab.name !== "aipicker");
-
-  const toggleEditorTab = (tabName) => {
-    setActiveEditorTab((prev) => (prev === tabName ? "" : tabName));
-  };
-
+  // Show tab content depending on the active tab
   const generateTabContent = () => {
     switch (activeEditorTab) {
       case "colorpicker":
@@ -82,6 +74,7 @@ const Customizer = () => {
     <AnimatePresence>
       {!snap.intro && (
         <>
+          {/* Left Panel: Editor Tabs */}
           <motion.div
             key="custom"
             className="absolute top-0 left-0 z-10"
@@ -89,11 +82,13 @@ const Customizer = () => {
           >
             <div className="flex items-center min-h-screen">
               <div className="editortabs-container tabs">
-                {visibleEditorTabs.map((tab) => (
+                {EditorTabs.map((tab) => (
                   <Tab
                     key={tab.name}
                     tab={tab}
-                    handleClick={() => toggleEditorTab(tab.name)}
+                    handleClick={() => {
+                      setActiveEditorTab(tab.name);
+                    }}
                   />
                 ))}
                 {generateTabContent()}
@@ -101,8 +96,9 @@ const Customizer = () => {
             </div>
           </motion.div>
 
+          {/* Top Right Buttons: Go Back & Save Image */}
           <motion.div
-            className="absolute top-5 right-5 z-10"
+            className="absolute top-5 right-5 z-10 flex flex-col items-end space-y-2"
             {...fadeAnimation}
           >
             <CustomButton
@@ -111,8 +107,15 @@ const Customizer = () => {
               handleClick={() => (state.intro = true)}
               customStyles="w-fit px-4 py-2.5 font-bold text-sm"
             />
+            <CustomButton
+              type="outline"
+              title="Save Image"
+              handleClick={downloadCanvasToImage}
+              customStyles="w-fit px-4 py-2.5 font-bold text-sm"
+            />
           </motion.div>
 
+          {/* Bottom Tabs: Filter Tabs */}
           <motion.div
             className="filtertabs-container"
             {...slideAnimation("up")}
@@ -123,7 +126,9 @@ const Customizer = () => {
                 tab={tab}
                 isFilterTab
                 isActiveTab={activeFilterTab[tab.name]}
-                handleClick={() => handleActiveFilterTab(tab.name)}
+                handleClick={() => {
+                  handleActiveFilterTab(tab.name);
+                }}
               />
             ))}
           </motion.div>
