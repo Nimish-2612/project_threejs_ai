@@ -1,8 +1,8 @@
 import express from "express";
+import fetch from "node-fetch"; // npm install node-fetch
 import * as dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Runware } from "@runware/sdk-js";
 
 dotenv.config({
   path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.env"),
@@ -10,30 +10,45 @@ dotenv.config({
 
 const router = express.Router();
 
-const runware = new Runware({ apiKey: process.env.RUNWARE_API_KEY });
+// Query function to Hugging Face Inference API
+async function query(data) {
+  const response = await fetch(
+    "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-dev",
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.HF_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
 
-router.route("/").get((req, res) => {
-  res.status(200).json({ message: "Hello from Runware Image Generator!" });
-});
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`HuggingFace API Error: ${text}`);
+  }
 
+  return await response.blob();
+}
+
+// Routes
 router.route("/").post(async (req, res) => {
   try {
     const { prompt } = req.body;
-    console.log("Received prompt from frontend:", prompt);
+    console.log("Prompt received:", prompt);
 
-    const images = await runware.requestImages({
-      positivePrompt: prompt,
-      model: "runware:101@1",
-      width: 1024,
-      height: 1024,
-    });
+    const imageBlob = await query({ inputs: prompt });
 
-    const imageUrl = images[0].imageURL;
+    // Convert Blob to base64 for frontend
+    const arrayBuffer = await imageBlob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64Image = buffer.toString("base64");
 
-    res.status(200).json({ photo: imageUrl }); // return image URL
-  } catch (error) {
-    console.error("Error generating image:", error);
-    res.status(500).json({ error: "Runware image generation failed." });
+    res.status(200).json({ photo: base64Image });
+  } catch (err) {
+    console.error("Image generation error:", err.message);
+    res.status(500).json({ error: "Image generation failed." });
   }
 });
 
