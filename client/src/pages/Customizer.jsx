@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSnapshot } from "valtio";
 import config from "../config/config";
@@ -10,7 +9,6 @@ import { EditorTabs, FilterTabs, DecalTypes } from "../config/constants";
 import { fadeAnimation, slideAnimation } from "../config/motion";
 
 import {
-  AIPicker,
   ColorPicker,
   CustomButton,
   FilePicker,
@@ -21,68 +19,32 @@ const Customizer = () => {
   const snap = useSnapshot(state);
 
   const [file, setFile] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [generatingImage, setGeneratingImage] = useState(false);
   const [activeEditorTab, setActiveEditorTab] = useState("");
   const [activeFilterTab, setActiveFilterTab] = useState({
     logoShirt: true,
     stylishShirt: false,
   });
 
-  //show tab content depending on the active tab
+  // Filter out AI Picker tab
+  const visibleEditorTabs = EditorTabs.filter((tab) => tab.name !== "aipicker");
+
+  const toggleEditorTab = (tabName) => {
+    setActiveEditorTab((prev) => (prev === tabName ? "" : tabName));
+  };
+
   const generateTabContent = () => {
     switch (activeEditorTab) {
       case "colorpicker":
         return <ColorPicker />;
       case "filepicker":
         return <FilePicker file={file} setFile={setFile} readFile={readFile} />;
-      case "aipicker":
-        return (
-          <AIPicker
-            prompt={prompt}
-            setPrompt={setPrompt}
-            generatingImage={generatingImage}
-            handleSubmit={handleSubmit}
-          />
-        );
       default:
         return null;
-    }
-  };
-  const handleSubmit = async (type) => {
-    if (!prompt) return alert("Please enter a prompt");
-
-    try {
-      setGeneratingImage(true);
-
-      const response = await fetch("https://project-threejs-ai-hq4y.onrender.com/api/v1/dalle", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt }),
-      });
-
-      const data = await response.json();
-
-      // Make sure this matches the backend JSON structure
-      if (data?.photo) {
-        handleDecals(type, data.photo);
-      } else {
-        alert("No image returned");
-      }
-    } catch (error) {
-      console.error("Frontend fetch error:", error);
-      alert("Failed to generate image");
-    } finally {
-      setGeneratingImage(false);
-      setActiveEditorTab("");
     }
   };
 
   const handleDecals = (type, result) => {
     const decalType = DecalTypes[type];
-
     state[decalType.stateProperty] = result;
 
     if (!activeFilterTab[decalType.filterTab]) {
@@ -103,13 +65,10 @@ const Customizer = () => {
         state.isFullTexture = false;
     }
 
-    //after setting the state, activeFilterTab is updated
-    setActiveFilterTab((prev) => {
-      return {
-        ...prev,
-        [tabName]: !prev[tabName],
-      };
-    });
+    setActiveFilterTab((prev) => ({
+      ...prev,
+      [tabName]: !prev[tabName],
+    }));
   };
 
   const readFile = (type) => {
@@ -124,26 +83,24 @@ const Customizer = () => {
       {!snap.intro && (
         <>
           <motion.div
-            key={"custom"}
+            key="custom"
             className="absolute top-0 left-0 z-10"
             {...slideAnimation("left")}
           >
             <div className="flex items-center min-h-screen">
               <div className="editortabs-container tabs">
-                {EditorTabs.map((tab) => (
+                {visibleEditorTabs.map((tab) => (
                   <Tab
                     key={tab.name}
                     tab={tab}
-                    handleClick={() => {
-                      setActiveEditorTab(tab.name);
-                    }}
+                    handleClick={() => toggleEditorTab(tab.name)}
                   />
                 ))}
-
                 {generateTabContent()}
               </div>
             </div>
           </motion.div>
+
           <motion.div
             className="absolute top-5 right-5 z-10"
             {...fadeAnimation}
@@ -166,14 +123,12 @@ const Customizer = () => {
                 tab={tab}
                 isFilterTab
                 isActiveTab={activeFilterTab[tab.name]}
-                handleClick={() => {
-                  handleActiveFilterTab(tab.name);
-                }}
+                handleClick={() => handleActiveFilterTab(tab.name)}
               />
             ))}
           </motion.div>
         </>
-      )}{" "}
+      )}
     </AnimatePresence>
   );
 };
